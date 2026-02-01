@@ -97,6 +97,16 @@ export const translations = {
             button_access: 'Access System',
             error_invalid: 'Invalid API Key',
             error_connection: 'Connection Error'
+        },
+        bioPopup: {
+            close: 'Continue',
+            content: `I graduated from university with a major in Chemistry, but an experience in cryptocurrency investing sparked my curiosity about technology, which led me to software development. While analyzing blockchain projects and exploring GitHub repositories, I discovered the joy and potential of coding. I then pursued web development training, gaining hands-on experience across frontend, backend, blockchain, and infrastructure.
+
+In team projects, I took on various roles including backend security authentication, frontend UI design, and integrating smart contracts for an NFT minting platform, building a strong understanding of end-to-end system architecture.
+
+As a solo solution developer, I gained real-world service experience implementing business logic, debugging database queries, and handling client requests. This taught me the importance of stable service architecture and security. I then balanced freelance development work with a blockchain security training program, expanding my expertise. During the program, I analyzed smart contract vulnerabilities and studied the deposit, lending, repayment, and liquidation structures of Web3 financial services at the code level, learning both the possibilities and limitations of blockchain technology.
+
+Currently, I work at the Korea Fiscal Information Service, operating the national settlement system. In this environment where the accuracy and stability of fiscal data directly impacts national trust, I am developing a strong sense of responsibility in system operations. However, due to the nature of public institutions, there are limitations in actively applying cutting-edge technology in practice. Therefore, I aim to take on roles that create direct value through technology in my spare time.`
         }
     },
     ko: {
@@ -197,6 +207,14 @@ export const translations = {
             button_access: '시스템 접속',
             error_invalid: '유효하지 않은 API 키입니다',
             error_connection: '연결 오류'
+        },
+        bioPopup: {
+            close: '계속하기',
+            content: `화학 전공으로 대학을 졸업했으나, 암호화폐 투자 경험을 계기로 기술에 대한 호기심이 개발로 이어졌습니다. 블록체인 프로젝트를 분석하며 깃허브의 코드를 살펴보는 과정에서 개발의 재미와 가능성을 느꼈고, 이후 웹 개발 교육을 통해 프론트엔드, 백엔드, 블록체인, 인프라 전반을 경험하였습니다. 팀 프로젝트에서는 백엔드 보안 인증, 프론트엔드 화면 설계, NFT 민팅 플랫폼의 스마트 컨트랙트 연동 등 다양한 역할을 수행하며 전체 시스템 흐름을 이해하는 역량을 쌓았습니다.
+
+1인 솔루션 개발자로 활동하며 실제 서비스 운영 환경에서 비즈니스 로직 구현, 데이터베이스 쿼리 디버깅, 고객사 요청사항 대응을 경험하였습니다. 해당 경험을 바탕으로 보다 안정적인 서비스 구조와 보안의 중요성을 인식하게 되었고, 이후에는 프리랜서 개발 업무를 수행하는 동시에 블록체인 보안 교육과정을 수강하며 전문성을 확장하였습니다. 교육과정에서는 스마트 컨트랙트 취약점 분석, 웹3 금융 서비스의 입출금·대출·상환·청산 구조를 코드 레벨에서 분석하며, 블록체인 기술의 가능성과 한계를 함께 학습하였습니다.
+
+현재는 한국재정정보원에서 국가 결산시스템 운영을 담당하며, 재정 데이터의 정확성과 안정성이 국가 신뢰로 직결되는 환경에서 시스템 운영의 책임감을 체득하고 있습니다. 다만 공공기관의 특성상 첨단 기술을 적극적으로 실무에 적용하는 데에는 한계가 있어, 여가 시간을 활용하여 기술을 통해 보다 직접적인 가치를 창출하는 역할을 수행하고자 하는 목표로 움직이고 있습니다.`
         }
     }
 };

@@ -13,12 +13,13 @@ export default function PortfolioPage() {
   const [activeSoulGridImg, setActiveSoulGridImg] = useState('/images/soulgrid_landing.png');
   const [showApiModal, setShowApiModal] = useState(false);
   const [heroImageFlipped, setHeroImageFlipped] = useState(false);
+  const [showBioPopup, setShowBioPopup] = useState(false);
 
-  // Auto-rotate hero image every 3 seconds
+  // Auto-rotate hero image every 1.5 seconds (shortened for quick viewing)
   useEffect(() => {
     const interval = setInterval(() => {
       setHeroImageFlipped(prev => !prev);
-    }, 3000);
+    }, 1500);
     return () => clearInterval(interval);
   }, []);
   const [apiKey, setApiKey] = useState('');
@@ -199,6 +200,8 @@ export default function PortfolioPage() {
           <div className="hero-image-container">
             <div
               className={`hero-flip-card ${heroImageFlipped ? 'flipped' : ''}`}
+              onClick={() => setShowBioPopup(true)}
+              style={{ cursor: 'pointer' }}
             >
               {/* Front: SK Logo */}
               <div className="hero-flip-card-front">
@@ -233,6 +236,33 @@ export default function PortfolioPage() {
               </div>
             </div>
             <div className="hero-image-frame"></div>
+            {/* Click indicator - placed outside flip-card to avoid rotation */}
+            <div className="hero-click-indicator">
+              <motion.div
+                animate={{ scale: [1, 1.05, 1], opacity: [0.7, 1, 0.7] }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                onClick={() => setShowBioPopup(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  background: 'rgba(0, 0, 0, 0.6)',
+                  backdropFilter: 'blur(4px)',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '20px',
+                  color: 'white',
+                  fontSize: '0.7rem',
+                  fontWeight: 500,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                  cursor: 'pointer'
+                }}
+              >
+                <span style={{ fontSize: '0.9rem' }}>👆</span>
+                {lang === 'ko' ? '클릭하여 더 보기' : 'Click to learn more'}
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -729,6 +759,226 @@ export default function PortfolioPage() {
                   {loading ? t.modal.button_auth : t.modal.button_access}
                 </button>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Bio Popup Modal */}
+      <AnimatePresence>
+        {showBioPopup && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'linear-gradient(135deg, rgba(139,115,85,0.15) 0%, rgba(0,0,0,0.5) 100%)',
+                backdropFilter: 'blur(8px)'
+              }}
+              onClick={() => setShowBioPopup(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.9, y: 40, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 40, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: '700px',
+                maxHeight: '85vh',
+                overflowY: 'auto',
+                padding: '3rem',
+                background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(245,240,232,0.98) 100%)',
+                borderRadius: '16px',
+                boxShadow: '0 25px 80px -12px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.2)',
+                zIndex: 101,
+                border: '1px solid rgba(139,115,85,0.2)',
+                fontFamily: "'Inter', sans-serif"
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Decorative header line */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '60px',
+                height: '4px',
+                background: 'linear-gradient(90deg, var(--color-primary), var(--color-primary-light))',
+                borderRadius: '0 0 4px 4px'
+              }} />
+
+              {/* Close button - stylish chevron design */}
+              <motion.button
+                onClick={() => setShowBioPopup(false)}
+                whileHover={{ scale: 1.1, x: 4 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  position: 'absolute',
+                  top: '1.5rem',
+                  right: '1.5rem',
+                  background: 'linear-gradient(135deg, #8B7355 0%, #6B5744 100%)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  cursor: 'pointer',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(139,115,85,0.3)',
+                  transition: 'all 0.2s'
+                }}
+                title={lang === 'ko' ? '닫기' : 'Close'}
+              >
+                <ChevronDown size={20} style={{ transform: 'rotate(-90deg)' }} />
+              </motion.button>
+
+              {/* Language toggle inside popup */}
+              <motion.button
+                onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  position: 'absolute',
+                  top: '1.5rem',
+                  left: '1.5rem',
+                  background: 'rgba(139, 115, 85, 0.1)',
+                  border: '1px solid rgba(139, 115, 85, 0.3)',
+                  borderRadius: '20px',
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s'
+                }}
+                title={lang === 'ko' ? 'Switch to English' : '한국어로 전환'}
+              >
+                <Globe size={14} style={{ color: 'var(--color-primary)' }} />
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.05em',
+                  color: lang === 'ko' ? 'var(--color-text-muted)' : 'var(--color-text)'
+                }}>EN</span>
+                <span style={{
+                  fontSize: '0.7rem',
+                  color: 'var(--color-text-muted)'
+                }}>|</span>
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.05em',
+                  color: lang === 'ko' ? 'var(--color-text)' : 'var(--color-text-muted)'
+                }}>KR</span>
+              </motion.button>
+
+              {/* Content */}
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  marginBottom: '1rem'
+                }}>
+                  <div style={{
+                    width: '50px',
+                    height: '1px',
+                    background: 'linear-gradient(90deg, transparent, var(--color-primary))'
+                  }} />
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-primary)'
+                  }}>
+                    {lang === 'ko' ? '자기소개' : 'About Me'}
+                  </span>
+                  <div style={{
+                    width: '50px',
+                    height: '1px',
+                    background: 'linear-gradient(90deg, var(--color-primary), transparent)'
+                  }} />
+                </div>
+                <h2 style={{
+                  fontSize: '2rem',
+                  fontWeight: 400,
+                  color: '#2C2C2C',
+                  fontFamily: "'Cormorant Garamond', serif",
+                  marginBottom: '0.5rem'
+                }}>
+                  Sojin Kim
+                </h2>
+                <p style={{
+                  fontSize: '0.8rem',
+                  color: '#9B9B9B',
+                  letterSpacing: '0.1em'
+                }}>
+                  Full-Stack Developer
+                </p>
+              </div>
+
+              {/* Bio Content */}
+              <div style={{
+                fontSize: '0.95rem',
+                lineHeight: '2',
+                color: '#4A4A4A',
+                textAlign: 'justify',
+                whiteSpace: 'pre-line'
+              }}>
+                {t.bioPopup.content}
+              </div>
+
+              {/* Continue Button */}
+              <motion.button
+                onClick={() => setShowBioPopup(false)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.75rem',
+                  marginTop: '2.5rem',
+                  width: '100%',
+                  padding: '1rem 2rem',
+                  background: 'linear-gradient(135deg, #8B7355 0%, #6B5744 100%)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  letterSpacing: '0.1em',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 24px rgba(139,115,85,0.25)',
+                  transition: 'all 0.3s'
+                }}
+              >
+                {t.bioPopup.close}
+                <ChevronDown size={16} style={{ transform: 'rotate(-90deg)' }} />
+              </motion.button>
             </motion.div>
           </div>
         )}

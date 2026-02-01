@@ -293,6 +293,15 @@
   opacity: 0.9;
 }
 
+/* Hero Click Indicator - positioned below the flip card */
+.hero-click-indicator {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+  z-index: 10;
+}
+
 /* Flip Card hover effect for desktop */
 @media (hover: hover) {
   .hero-flip-card:hover {
