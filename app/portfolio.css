@@ -875,4 +875,82 @@
     grid-template-columns: 1fr;
     gap: 0.5rem;
   }
+
+  /* Mobile: Thumbnail grid adjustments */
+  .project-sub-imgs {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .project-sub-imgs-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .project-sub-imgs-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .thumb-container {
+    height: 60px;
+  }
+
+  /* Ensure project gallery takes full width */
+  .project-gallery {
+    width: 100%;
+  }
+
+  .project-main-container {
+    width: 100%;
+  }
+
+  .project-image {
+    width: 100%;
+  }
+
+  /* Fix featured project padding for mobile */
+  .project-featured {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+
+  .project-sub-imgs,
+  .project-sub-imgs-3 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+  }
+
+  .project-sub-imgs-4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+  }
+
+  .thumb-container {
+    height: 50px;
+  }
+
+  .project-featured {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .project-title {
+    font-size: 1.5rem;
+  }
+
+  .project-description {
+    font-size: 0.85rem;
+  }
+
+  .project-tech {
+    gap: 0.3rem;
+  }
+
+  .tech-tag {
+    font-size: 0.6rem;
+    padding: 0.3rem 0.5rem;
+  }
 }
