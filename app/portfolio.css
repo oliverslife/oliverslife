@@ -120,8 +120,8 @@
   margin: 0 1px;
 }
 
-/* Minimal Cressets Button (Lock) */
-.cressets-btn-minimal {
+/* Minimal Oliverslife Button (Lock) */
+.oliverslife-btn-minimal {
   background: transparent;
   border: 1px solid transparent;
   color: var(--color-text-muted);
@@ -135,7 +135,7 @@
   transition: all 0.3s ease;
 }
 
-.cressets-btn-minimal:hover {
+.oliverslife-btn-minimal:hover {
   color: var(--color-primary);
   background: rgba(139, 115, 85, 0.05);
 }

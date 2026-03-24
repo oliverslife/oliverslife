@@ -654,7 +654,7 @@ export default function PortfolioPage() {
         <span>{t.footer.location}</span>
       </footer>
 
-      {/* Cressets Login Modal */}
+      {/* Oliverslife Login Modal */}
       <AnimatePresence>
         {showApiModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

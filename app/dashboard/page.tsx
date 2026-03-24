@@ -225,7 +225,7 @@ export default function Dashboard() {
                         <HardDrive className="text-[#8B7355]" size={32} strokeWidth={1.5} />
                     </div>
                     <div>
-                        <h1 className="text-4xl font-light text-[#1A1A1A] tracking-tight" style={{ fontFamily: 'serif' }}>Cressets</h1>
+                        <h1 className="text-4xl font-light text-[#1A1A1A] tracking-tight" style={{ fontFamily: 'serif' }}>Oliverslife</h1>
                         <div className="flex items-center gap-3 mt-2">
                             <span className="h-px w-8 bg-[#8B7355]/40"></span>
                             <p className="text-[#8B7355] text-xs font-bold tracking-[0.2em] uppercase">File Management System</p>

@@ -1,4 +1,4 @@
-name: Deploy Cressets (Final Working)
+name: Deploy Oliverslife (Final Working)
 
 on:
   push:
@@ -57,12 +57,12 @@ jobs:
       - name: Upload build artifacts
         uses: appleboy/scp-action@v1
         with:
-          host: cressets.mooo.com
+          host: oliverslife.mooo.com
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           port: 22
           source: artifact.tar.gz
-          target: /var/www/cressets
+          target: /var/www/oliverslife
 
       # 7. SSH 연결: 압축 해제, DB 마이그레이션, 재시작
       - name: Extract artifacts & Deploy
@@ -70,7 +70,7 @@ jobs:
         env:
           API_KEY: ${{ secrets.API_KEY }}
         with:
-          host: cressets.mooo.com
+          host: oliverslife.mooo.com
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           port: 22
@@ -83,7 +83,7 @@ jobs:
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-            cd /var/www/cressets
+            cd /var/www/oliverslife
 
             # 백업 및 준비
             mkdir -p old_build
@@ -104,7 +104,7 @@ jobs:
 
             # PM2 재시작 (메모리 제한 옵션 추가 고려)
             # --max-memory-restart 800M: 메모리 누수 방지 안전장치
-            pm2 describe cressets > /dev/null 2>&1 && API_KEY="$API_KEY" DATABASE_URL="file:./prod.db" pm2 reload cressets --update-env || API_KEY="$API_KEY" DATABASE_URL="file:./prod.db" PORT=3000 pm2 start server.js --name "cressets" --max-memory-restart 800M
+            pm2 describe oliverslife > /dev/null 2>&1 && API_KEY="$API_KEY" DATABASE_URL="file:./prod.db" pm2 reload oliverslife --update-env || API_KEY="$API_KEY" DATABASE_URL="file:./prod.db" PORT=3000 pm2 start server.js --name "oliverslife" --max-memory-restart 800M
             pm2 save
 
             # 정리

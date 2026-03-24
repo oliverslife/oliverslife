@@ -5,7 +5,7 @@ export const translations = {
             projects: 'Projects',
             insights: 'Insights',
             contact: 'Contact',
-            dashboard: 'Cressets'
+            dashboard: 'Oliverslife'
         },
         hero: {
             tagline: 'Full-Stack Developer • Seoul, Korea',
@@ -90,7 +90,7 @@ export const translations = {
             location: 'Seoul, South Korea'
         },
         modal: {
-            title: 'Cressets',
+            title: 'Oliverslife',
             subtitle: 'File Management System',
             placeholder: 'Enter API Key',
             button_auth: 'Authenticating...',
@@ -115,7 +115,7 @@ Currently, I work at the Korea Fiscal Information Service, operating the nationa
             projects: '프로젝트',
             insights: '인사이트',
             contact: '문의',
-            dashboard: 'Cressets'
+            dashboard: 'Oliverslife'
         },
         hero: {
             tagline: '풀스택 개발자 • 대한민국 서울',
@@ -200,7 +200,7 @@ Currently, I work at the Korea Fiscal Information Service, operating the nationa
             location: '서울, 대한민국'
         },
         modal: {
-            title: 'Cressets',
+            title: 'Oliverslife',
             subtitle: '파일 관리 시스템',
             placeholder: 'API 키 입력',
             button_auth: '인증 중...',
