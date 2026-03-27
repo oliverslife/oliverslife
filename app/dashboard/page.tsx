@@ -93,7 +93,7 @@ export default function Dashboard() {
                 await axios.post(`/api/files?path=${encodeURIComponent(currentPath)}`, file, {
                     headers: {
                         'x-filename': encodeURIComponent(file.name),
-                        'content-length': file.size.toString(),
+                        // Removed content-length (unsafe header in browser)
                     },
                     onUploadProgress: (progressEvent) => {
                         if (progressEvent.total) {
@@ -288,9 +288,6 @@ export default function Dashboard() {
                     </button>
                     <button className={`nav-item ${activeTab === 'favorites' ? 'active' : ''}`} onClick={() => setActiveTab('favorites')}>
                         <Star size={18} /> Favorites
-                    </button>
-                    <button className={`nav-item ${activeTab === 'shared' ? 'active' : ''}`} onClick={() => {setActiveTab('shared'); setCurrentPath('Shared Connections');}}>
-                        <Share2 size={18} /> Shared Connections
                     </button>
                 </div>
 
