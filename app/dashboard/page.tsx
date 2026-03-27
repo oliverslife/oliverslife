@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { File, Folder, Trash2, Upload, HardDrive, LogOut, Download, ChevronRight, Search, FolderPlus, X, FileText, Image, Video, Music, Archive, RefreshCw, Home, Clock, Star, Share2, MoreHorizontal } from 'lucide-react';
+import { File, Folder, Trash2, Upload, HardDrive, LogOut, Download, ChevronRight, Search, FolderPlus, X, FileText, Image, Video, Music, Archive, RefreshCw, Home, Clock, Star, Share2, MoreHorizontal, Cloud } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import './dashboard.css';
@@ -22,6 +22,8 @@ export default function Dashboard() {
     const [downloadProgress, setDownloadProgress] = useState<{ [key: string]: number }>({});
     const [loading, setLoading] = useState(true);
     const [usage, setUsage] = useState(0);
+    const [limit, setLimit] = useState(35 * 1024 * 1024 * 1024); // Default 35GB, updated by API
+    const [favorites, setFavorites] = useState<string[]>([]);
     const [dragActive, setDragActive] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState<'name' | 'size' | 'modified'>('name');
@@ -33,6 +35,21 @@ export default function Dashboard() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
+    useEffect(() => {
+        const storedFavs = localStorage.getItem('oliverslife_favorites');
+        if (storedFavs) {
+            try { setFavorites(JSON.parse(storedFavs)); } catch (e) {}
+        }
+    }, []);
+
+    const toggleFavorite = (filePath: string) => {
+        setFavorites(prev => {
+            const newFavs = prev.includes(filePath) ? prev.filter(p => p !== filePath) : [...prev, filePath];
+            localStorage.setItem('oliverslife_favorites', JSON.stringify(newFavs));
+            return newFavs;
+        });
+    };
+
     const fetchFiles = async (path: string) => {
         setLoading(true);
         try {
@@ -40,7 +57,11 @@ export default function Dashboard() {
             if (res.ok) {
                 const data = await res.json();
                 setFiles(data.files);
-                setUsage(data.usage);
+                if (data.usage !== undefined) setUsage(data.usage);
+                if (data.limit !== undefined) setLimit(data.limit);
+            } else if (res.status === 401) {
+                // Unauthorized session
+                router.push('/');
             }
         } catch (error) {
             console.error(error);
@@ -81,8 +102,12 @@ export default function Dashboard() {
                         }
                     }
                 });
-            } catch {
-                alert(`Error uploading: ${file.name}`);
+            } catch (err: any) {
+                if (err.response?.status === 507) {
+                    alert('Storage limit exceeded (90% capacity). Cannot upload.');
+                } else {
+                    alert(`Error uploading: ${file.name}`);
+                }
             }
         }
 
@@ -99,6 +124,12 @@ export default function Dashboard() {
                 method: 'DELETE',
             });
             if (res.ok) {
+                // If it was favorited, remove it from favorites
+                setFavorites(prev => {
+                    const newFavs = prev.filter(p => !p.startsWith(filePath));
+                    localStorage.setItem('oliverslife_favorites', JSON.stringify(newFavs));
+                    return newFavs;
+                });
                 fetchFiles(currentPath);
             }
         } catch {
@@ -190,8 +221,16 @@ export default function Dashboard() {
     };
 
     const filteredAndSortedFiles = files
-        .filter(file => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .filter(file => {
+            const fullName = currentPath ? `${currentPath}/${file.name}` : file.name;
+            if (activeTab === 'favorites' && !favorites.includes(fullName)) return false;
+            if (searchQuery && !file.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+            return true;
+        })
         .sort((a, b) => {
+            if (activeTab === 'recents') {
+                return new Date(b.modified).getTime() - new Date(a.modified).getTime();
+            }
             if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
             let comparison = 0;
             switch (sortBy) {
@@ -223,7 +262,7 @@ export default function Dashboard() {
         else if (e.type === "dragleave") setDragActive(false);
     };
 
-    const usagePercent = (usage / (35 * 1024 * 1024 * 1024)) * 100;
+    const usagePercent = limit > 0 ? (usage / limit) * 100 : 0;
 
     return (
         <div 
@@ -236,7 +275,7 @@ export default function Dashboard() {
             {/* Sidebar */}
             <div className="sidebar">
                 <div className="sidebar-logo">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Box_Inc._logo.svg" style={{width: 32, filter: 'brightness(0) invert(1)'}} alt="Logo" />
+                    <Cloud size={32} color="white" />
                     <span>cloud</span>
                 </div>
 
@@ -250,17 +289,17 @@ export default function Dashboard() {
                     <button className={`nav-item ${activeTab === 'favorites' ? 'active' : ''}`} onClick={() => setActiveTab('favorites')}>
                         <Star size={18} /> Favorites
                     </button>
-                    <button className="nav-item">
+                    <button className={`nav-item ${activeTab === 'shared' ? 'active' : ''}`} onClick={() => {setActiveTab('shared'); setCurrentPath('Shared Connections');}}>
                         <Share2 size={18} /> Shared Connections
                     </button>
                 </div>
 
                 <div className="nav-section">My Collections</div>
                 <div className="sidebar-nav">
-                    <button className="nav-item">
+                    <button className={`nav-item ${activeTab === 'projects' ? 'active' : ''}`} onClick={() => {setActiveTab('projects'); setCurrentPath('Projects');}}>
                         <Folder size={18} /> Project Files
                     </button>
-                    <button className="nav-item">
+                    <button className={`nav-item ${activeTab === 'personal' ? 'active' : ''}`} onClick={() => {setActiveTab('personal'); setCurrentPath('Personal');}}>
                         <Folder size={18} /> Personal
                     </button>
                 </div>
@@ -272,7 +311,7 @@ export default function Dashboard() {
                     </div>
                     <div className="usage-text">
                         <span>{formatSize(usage)}</span>
-                        <span>35 GB limit</span>
+                        <span>{formatSize(limit)} limit</span>
                     </div>
                 </div>
             </div>
@@ -301,7 +340,9 @@ export default function Dashboard() {
                 {/* Toolbar */}
                 <div className="toolbar">
                     <div className="breadcrumb">
-                        <button className="breadcrumb-item" onClick={() => setCurrentPath('')}>All Files</button>
+                        <button className="breadcrumb-item" onClick={() => setCurrentPath('')}>
+                            {activeTab === 'recents' ? 'Recents' : activeTab === 'favorites' ? 'Favorites' : 'All Files'}
+                        </button>
                         {currentPath && currentPath.split('/').filter(Boolean).map((segment, idx, arr) => (
                             <div key={idx} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                                 <ChevronRight className="breadcrumb-divider" size={18} />
@@ -337,15 +378,19 @@ export default function Dashboard() {
                         <div className="empty-state">
                             <Archive size={64} color="#cbd5e1" strokeWidth={1} />
                             <h3>Your space is empty</h3>
-                            <p>Drag and drop your files here to upload</p>
+                            <p>Drag and drop your files here to upload, or try a different tab.</p>
                         </div>
                     ) : (
                         <div className="grid-container">
-                            {filteredAndSortedFiles.map((file) => (
+                            {filteredAndSortedFiles.map((file) => {
+                                const fullName = currentPath ? `${currentPath}/${file.name}` : file.name;
+                                const isFav = favorites.includes(fullName);
+                                
+                                return (
                                 <div 
                                     key={file.name} 
                                     className="file-card"
-                                    onClick={() => file.isDirectory ? setCurrentPath(currentPath ? `${currentPath}/${file.name}` : file.name) : null}
+                                    onClick={() => file.isDirectory ? setCurrentPath(fullName) : null}
                                 >
                                     <div className="file-icon-container">
                                         {getFileIcon(file.name, file.isDirectory)}
@@ -357,6 +402,13 @@ export default function Dashboard() {
                                     </div>
 
                                     <div className="card-actions">
+                                        <button 
+                                            className="action-icon" 
+                                            onClick={(e) => { e.stopPropagation(); toggleFavorite(fullName); }}
+                                            title="Favorite"
+                                        >
+                                            <Star size={16} fill={isFav ? "gold" : "none"} color={isFav ? "gold" : "#64748b"} />
+                                        </button>
                                         {!file.isDirectory && (
                                             <button 
                                                 className="action-icon" 
@@ -373,10 +425,9 @@ export default function Dashboard() {
                                         >
                                             <Trash2 size={16} />
                                         </button>
-                                        <button className="action-icon" onClick={(e) => e.stopPropagation()}><MoreHorizontal size={16} /></button>
                                     </div>
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     )}
                 </div>

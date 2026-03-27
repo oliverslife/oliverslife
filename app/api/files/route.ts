@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFilePath, listFiles, hasSpaceAvailable, getTotalUsage } from '@/lib/storage';
+import { getFilePath, listFiles, hasSpaceAvailable, getStorageInfo } from '@/lib/storage';
 import fs from 'fs';
 import path from 'path';
 import { pipeline } from 'stream/promises';
@@ -32,14 +32,14 @@ export async function GET(req: NextRequest) {
             return new NextResponse(fileStream, {
                 headers: {
                     'Content-Type': 'application/octet-stream',
-                    'Content-Disposition': `attachment; filename="${encodeURIComponent(path.basename(targetPath))}"`,
+                    'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(path.basename(targetPath))}`,
                 },
             });
         }
 
         const files = await listFiles(pathParam);
-        const usage = await getTotalUsage();
-        return NextResponse.json({ files, usage });
+        const { used, limit } = await getStorageInfo();
+        return NextResponse.json({ files, usage: used, limit });
     } catch (error) {
         console.error(error);
         return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });

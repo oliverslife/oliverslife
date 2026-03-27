@@ -45,13 +45,32 @@ export async function getDirectorySize(dirPath: string): Promise<number> {
     return size;
 }
 
+export async function getStorageInfo() {
+    const used = await getDirectorySize(STORAGE_ROOT);
+    let total = MAX_STORAGE_SIZE;
+    try {
+        // Use fs.promises.statfs if supported (Node >= 19.6.0)
+        // @ts-ignore
+        if (typeof fs.promises.statfs === 'function') {
+            // @ts-ignore
+            const stats = await fs.promises.statfs(STORAGE_ROOT);
+            total = stats.blocks * stats.bsize;
+        }
+    } catch (e) {
+        console.error('statfs not supported, using default MAX_STORAGE_SIZE');
+    }
+    
+    const limit = total * 0.9; // 90% of total capacity
+    return { used, total, limit };
+}
+
 export async function getTotalUsage(): Promise<number> {
     return getDirectorySize(STORAGE_ROOT);
 }
 
 export async function hasSpaceAvailable(fileSize: number): Promise<boolean> {
-    const currentUsage = await getTotalUsage();
-    return (currentUsage + fileSize) <= MAX_STORAGE_SIZE;
+    const { used, limit } = await getStorageInfo();
+    return (used + fileSize) <= limit;
 }
 
 export interface FileInfo {

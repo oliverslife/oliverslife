@@ -17,11 +17,9 @@ export async function POST(request: NextRequest) {
 
             cookieStore.set('auth_token', 'valid_session', {
                 httpOnly: true,
-                // If using http:// instead of https://, 'secure: true' will block cookies
-                // Only use secure in production AND if not on a plain HTTP connection
                 secure: process.env.NODE_ENV === 'production' && !request.url.startsWith('http://'),
                 sameSite: 'strict',
-                maxAge: 60 * 60 * 24 * 7, // 1 week
+                // session cookie (no maxAge)
                 path: '/',
             });
 
