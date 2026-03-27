@@ -3,7 +3,7 @@ name: Deploy Oliverslife (Final Working)
 on:
   push:
     branches:
-      - master  # 기본 브랜치가 main이면 main으로 변경
+      - master
 
 jobs:
   deploy:

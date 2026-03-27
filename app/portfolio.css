@@ -170,6 +170,8 @@
   line-height: 1.1;
   color: var(--color-text);
   margin-bottom: 2rem;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .hero-title em {

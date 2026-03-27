@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { File, Folder, Trash2, Upload, HardDrive, LogOut, Download, ChevronLeft, Search, SortAsc, SortDesc, FolderPlus, X, FileText, Image, Video, Music, Archive, RefreshCw, Home } from 'lucide-react';
+import { File, Folder, Trash2, Upload, HardDrive, LogOut, Download, ChevronLeft, Search, SortAsc, SortDesc, FolderPlus, X, FileText, Image, Video, Music, Archive, RefreshCw, Home, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 interface FileInfo {
     name: string;
@@ -17,6 +18,7 @@ export default function Dashboard() {
     const [currentPath, setCurrentPath] = useState('');
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+    const [downloadProgress, setDownloadProgress] = useState<{ [key: string]: number }>({});
     const [loading, setLoading] = useState(true);
     const [usage, setUsage] = useState(0);
     const [dragActive, setDragActive] = useState(false);
@@ -65,28 +67,25 @@ export default function Dashboard() {
             setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
 
             try {
-                const res = await fetch(`/api/files?path=${encodeURIComponent(currentPath)}`, {
-                    method: 'POST',
+                await axios.post(`/api/files?path=${encodeURIComponent(currentPath)}`, file, {
                     headers: {
                         'x-filename': encodeURIComponent(file.name),
                         'content-length': file.size.toString(),
                     },
-                    body: file,
+                    onUploadProgress: (progressEvent) => {
+                        if (progressEvent.total) {
+                            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                            setUploadProgress(prev => ({ ...prev, [file.name]: percentCompleted }));
+                        }
+                    }
                 });
-
-                if (res.ok) {
-                    setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
-                } else {
-                    const errorData = await res.json();
-                    alert(`Upload Failed: ${file.name} - ${errorData.error || 'Unknown Error'}`);
-                }
             } catch {
-                alert(`Error: ${file.name}`);
+                alert(`Error uploading: ${file.name}`);
             }
         }
 
         setUploading(false);
-        setUploadProgress({});
+        setTimeout(() => setUploadProgress({}), 3000);
         fetchFiles(currentPath);
     };
 
@@ -105,15 +104,42 @@ export default function Dashboard() {
         }
     };
 
-    const handleDownload = (filename: string) => {
+    const handleDownload = async (filename: string) => {
         const filePath = currentPath ? `${currentPath}/${filename}` : filename;
         const url = `/api/files?path=${encodeURIComponent(filePath)}&action=download`;
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        
+        setDownloadProgress(prev => ({ ...prev, [filename]: 0 }));
+
+        try {
+            const response = await axios.get(url, {
+                responseType: 'blob',
+                onDownloadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        setDownloadProgress(prev => ({ ...prev, [filename]: percentCompleted }));
+                    }
+                }
+            });
+
+            const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch {
+            alert('Download failed');
+        }
+
+        setTimeout(() => {
+            setDownloadProgress(prev => {
+                const next = { ...prev };
+                delete next[filename];
+                return next;
+            });
+        }, 3000);
     };
 
     const handleCreateFolder = async () => {
@@ -143,7 +169,7 @@ export default function Dashboard() {
     };
 
     const getFileIcon = (filename: string, isDirectory: boolean) => {
-        if (isDirectory) return <Folder className="text-[#8B7355]" size={24} strokeWidth={1.5} />;
+        if (isDirectory) return <Folder className="text-indigo-400" size={28} strokeWidth={1.5} />;
 
         const ext = filename.split('.').pop()?.toLowerCase() || '';
         const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
@@ -152,13 +178,13 @@ export default function Dashboard() {
         const archiveExts = ['zip', 'rar', '7z', 'tar', 'gz'];
         const docExts = ['pdf', 'doc', 'docx', 'txt', 'md', 'xls', 'xlsx'];
 
-        if (imageExts.includes(ext)) return <Image className="text-emerald-600" size={24} strokeWidth={1.5} />;
-        if (videoExts.includes(ext)) return <Video className="text-violet-600" size={24} strokeWidth={1.5} />;
-        if (audioExts.includes(ext)) return <Music className="text-rose-500" size={24} strokeWidth={1.5} />;
-        if (archiveExts.includes(ext)) return <Archive className="text-amber-600" size={24} strokeWidth={1.5} />;
-        if (docExts.includes(ext)) return <FileText className="text-blue-600" size={24} strokeWidth={1.5} />;
+        if (imageExts.includes(ext)) return <Image className="text-emerald-400" size={28} strokeWidth={1.5} />;
+        if (videoExts.includes(ext)) return <Video className="text-purple-400" size={28} strokeWidth={1.5} />;
+        if (audioExts.includes(ext)) return <Music className="text-pink-400" size={28} strokeWidth={1.5} />;
+        if (archiveExts.includes(ext)) return <Archive className="text-amber-400" size={28} strokeWidth={1.5} />;
+        if (docExts.includes(ext)) return <FileText className="text-blue-400" size={28} strokeWidth={1.5} />;
 
-        return <File className="text-gray-400" size={24} strokeWidth={1.5} />;
+        return <File className="text-slate-400" size={28} strokeWidth={1.5} />;
     };
 
     const filteredAndSortedFiles = files
@@ -176,7 +202,7 @@ export default function Dashboard() {
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('ko-KR', {
-            year: 'numeric', month: '2-digit', day: '2-digit'
+            year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
         });
     };
 
@@ -200,303 +226,340 @@ export default function Dashboard() {
 
     return (
         <div
-            className="min-h-screen p-6 lg:p-12 font-sans text-[#2C2C2C] bg-[#F4F1EA]"
-            style={{
-                backgroundImage: `
-                    radial-gradient(circle at 100% 0%, rgba(139, 115, 85, 0.08) 0%, transparent 25%),
-                    radial-gradient(circle at 0% 100%, rgba(139, 115, 85, 0.05) 0%, transparent 25%)
-                `
-            }}
+            className="min-h-screen p-6 lg:p-12 font-sans text-slate-200 bg-[#0B0F19] selection:bg-indigo-500/30 overflow-hidden relative"
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
         >
-            <div className="fixed inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23000000\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+            {/* Background Effects */}
+            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full mix-blend-screen" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full mix-blend-screen" />
+            </div>
 
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-12"
-            >
-                <div className="flex items-center gap-6">
-                    <div className="p-4 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-[#8B7355]/10">
-                        <HardDrive className="text-[#8B7355]" size={32} strokeWidth={1.5} />
-                    </div>
-                    <div>
-                        <h1 className="text-4xl font-light text-[#1A1A1A] tracking-tight" style={{ fontFamily: 'serif' }}>Oliverslife</h1>
-                        <div className="flex items-center gap-3 mt-2">
-                            <span className="h-px w-8 bg-[#8B7355]/40"></span>
-                            <p className="text-[#8B7355] text-xs font-bold tracking-[0.2em] uppercase">File Management System</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-6 w-full lg:w-auto">
-                    <div className="flex-1 lg:flex-none flex items-center gap-5 bg-white/60 backdrop-blur-md p-5 rounded-2xl border border-white/60 shadow-sm transition-all hover:shadow-md hover:bg-white/80">
-                        <div className="flex-1 lg:w-60">
-                            <div className="flex justify-between text-[11px] font-bold text-[#6B6B6B] mb-2 uppercase tracking-wider">
-                                <span>Storage Usage</span>
-                                <span className={usagePercent > 90 ? 'text-red-500' : 'text-[#8B7355]'}>{Math.round(usagePercent)}%</span>
-                            </div>
-                            <div className="h-2 bg-[#EAE5DE] rounded-full overflow-hidden">
-                                <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${Math.min(usagePercent, 100)}%` }}
-                                    transition={{ duration: 1.2, ease: "easeOut" }}
-                                    className="h-full rounded-full bg-gradient-to-r from-[#8B7355] to-[#Cebfab] relative overflow-hidden"
-                                >
-                                    <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]" />
-                                </motion.div>
-                            </div>
-                            <div className="flex justify-between mt-2 text-[11px] font-medium text-[#8B7355]/80">
-                                <span>{formatSize(usage)} used</span>
-                                <span>35 GB total</span>
-                            </div>
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => router.push('/')}
-                        className="group p-4 text-[#6B6B6B] hover:text-[#8B7355] bg-white/60 hover:bg-white rounded-full transition-all border border-white/60 hover:border-[#8B7355]/20 shadow-sm hover:shadow-[0_8px_20px_rgb(139,115,85,0.15)]"
-                        title="Logout"
-                    >
-                        <LogOut size={22} strokeWidth={1.5} className="group-hover:translate-x-0.5 transition-transform" />
-                    </button>
-                </div>
-            </motion.div>
-
-            {/* Breadcrumbs */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-8 flex items-center gap-2 text-sm text-[#6B6B6B]">
-                <button
-                    onClick={() => setCurrentPath('')}
-                    className={`flex items-center gap-1 hover:text-[#8B7355] transition-colors ${!currentPath ? 'text-[#8B7355] font-medium' : ''}`}
+            <div className="relative z-10 max-w-[1600px] mx-auto">
+                {/* Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-10"
                 >
-                    <Home size={14} /> Home
-                </button>
-                {currentPath.split('/').map((segment, index, arr) => (
-                    <span key={index} className="flex items-center gap-2">
-                        <span className="text-[#E0D8CC]">/</span>
-                        <button
-                            onClick={() => setCurrentPath(arr.slice(0, index + 1).join('/'))}
-                            className={`hover:text-[#8B7355] transition-colors ${index === arr.length - 1 ? 'text-[#2C2C2C] font-medium' : ''}`}
-                        >
-                            {segment}
-                        </button>
-                    </span>
-                ))}
-            </motion.div>
-
-            {/* Toolbar */}
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="relative z-10 mb-8 flex flex-col xl:flex-row gap-6 items-stretch xl:items-center justify-between bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm"
-            >
-                <div className="flex gap-3 flex-wrap">
-                    {currentPath && (
-                        <button
-                            onClick={() => setCurrentPath(currentPath.split('/').slice(0, -1).join('/'))}
-                            className="flex items-center gap-2 px-5 py-3 bg-white border border-[#E5E0D8] text-[#5A5A5A] rounded-xl hover:bg-[#F9F7F2] hover:border-[#Cebfab] hover:text-[#8B7355] transition-all text-sm font-medium hover:shadow-sm"
-                        >
-                            <ChevronLeft size={18} /> <span className="hidden sm:inline">Back</span>
-                        </button>
-                    )}
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="flex items-center gap-2 px-6 py-3 bg-[#2C2C2C] text-white rounded-xl hover:bg-[#1a1a1a] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 transition-all text-sm font-medium tracking-wide shadow-sm"
-                    >
-                        <Upload size={18} /> {uploading ? 'Uploading...' : 'Upload File'}
-                    </button>
-                    <button
-                        onClick={() => setShowCreateFolder(true)}
-                        className="flex items-center gap-2 px-6 py-3 bg-white border border-[#E5E0D8] text-[#5A5A5A] rounded-xl hover:border-[#8B7355]/50 hover:text-[#8B7355] hover:shadow-sm hover:-translate-y-0.5 transition-all text-sm font-medium"
-                    >
-                        <FolderPlus size={18} /> New Folder
-                    </button>
-                    <button
-                        onClick={() => fetchFiles(currentPath)}
-                        disabled={loading}
-                        className="p-3 bg-white border border-[#E5E0D8] text-[#6B6B6B] rounded-xl hover:text-[#8B7355] hover:border-[#8B7355]/50 hover:shadow-sm transition-all"
-                    >
-                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                    </button>
-                </div>
-
-                {/* Search & Sort */}
-                <div className="flex gap-3 items-center flex-1 lg:flex-none justify-end">
-                    <div className="relative group w-full lg:w-72">
-                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9B9B9B] group-focus-within:text-[#8B7355] transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search your files..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-11 pr-5 py-3 bg-white border border-[#E5E0D8] rounded-xl text-sm text-[#2C2C2C] focus:border-[#8B7355]/50 focus:ring-4 focus:ring-[#8B7355]/5 transition-all outline-none placeholder:text-[#BBB] shadow-sm"
-                        />
+                    <div className="flex items-center gap-5">
+                        <div className="p-4 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+                            <HardDrive className="text-indigo-400" size={36} strokeWidth={1.5} />
+                        </div>
+                        <div>
+                            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-400 tracking-tight">
+                                Oliverslife Cloud
+                            </h1>
+                            <div className="flex items-center gap-3 mt-1.5">
+                                <span className="h-px w-8 bg-indigo-500/50"></span>
+                                <p className="text-indigo-300/80 text-xs font-semibold tracking-[0.2em] uppercase">Secure Storage</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        <div className="relative">
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value as 'name' | 'size' | 'modified')}
-                                className="appearance-none pl-4 pr-9 py-3 bg-white border border-[#E5E0D8] rounded-xl text-sm text-[#5A5A5A] focus:border-[#8B7355]/50 outline-none hover:border-[#Cebfab] transition-colors cursor-pointer shadow-sm min-w-[100px]"
-                            >
-                                <option value="name">Name</option>
-                                <option value="size">Size</option>
-                                <option value="modified">Date</option>
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#9B9B9B]">
-                                <ChevronLeft size={14} className="-rotate-90" />
+
+                    <div className="flex items-center gap-6 w-full lg:w-auto">
+                        <div className="flex-1 lg:flex-none flex items-center gap-5 bg-white/5 backdrop-blur-xl p-5 rounded-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.2)] hover:bg-white/10 transition-colors">
+                            <div className="flex-1 lg:w-64">
+                                <div className="flex justify-between text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">
+                                    <span>Storage Usage</span>
+                                    <span className={usagePercent > 90 ? 'text-red-400' : 'text-indigo-300'}>{Math.round(usagePercent)}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${Math.min(usagePercent, 100)}%` }}
+                                        transition={{ duration: 1.2, ease: "easeOut" }}
+                                        className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 relative"
+                                    >
+                                        <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]" />
+                                    </motion.div>
+                                </div>
+                                <div className="flex justify-between mt-2 text-[11px] font-medium text-slate-400">
+                                    <span>{formatSize(usage)} used</span>
+                                    <span>35 GB total</span>
+                                </div>
                             </div>
                         </div>
                         <button
-                            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                            className="p-3 bg-white border border-[#E5E0D8] rounded-xl hover:border-[#8B7355]/50 hover:text-[#8B7355] hover:shadow-sm transition-all text-[#6B6B6B]"
+                            onClick={() => router.push('/')}
+                            className="group p-5 bg-white/5 hover:bg-red-500/10 backdrop-blur-xl rounded-2xl border border-white/10 hover:border-red-500/30 transition-all shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
+                            title="Logout"
                         >
-                            {sortOrder === 'asc' ? <SortAsc size={18} /> : <SortDesc size={18} />}
+                            <LogOut size={22} className="text-slate-400 group-hover:text-red-400 transition-colors" />
                         </button>
                     </div>
-                </div>
-
-                <input type="file" ref={fileInputRef} className="hidden" multiple onChange={(e) => e.target.files && handleUpload(e.target.files)} />
-            </motion.div>
-
-            {/* Upload Progress */}
-            {Object.keys(uploadProgress).length > 0 && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 p-4 bg-white border border-[#E0D8CC] rounded-md shadow-sm">
-                    <h4 className="text-xs font-bold text-[#8B7355] uppercase tracking-wider mb-3">Uploading...</h4>
-                    {Object.entries(uploadProgress).map(([name, progress]) => (
-                        <div key={name} className="mb-3 last:mb-0">
-                            <div className="flex justify-between text-xs text-[#6B6B6B] mb-1">
-                                <span className="truncate max-w-[200px] font-medium">{name}</span>
-                                <span>{progress}%</span>
-                            </div>
-                            <div className="h-1 bg-[#F5F0E8] rounded-full overflow-hidden">
-                                <div className="h-full rounded-full transition-all duration-300 bg-[#8B7355]" style={{ width: `${progress}%` }} />
-                            </div>
-                        </div>
-                    ))}
                 </motion.div>
-            )}
 
-            {/* Create Folder Modal */}
-            <AnimatePresence>
-                {showCreateFolder && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-[#0a0a0f]/20 backdrop-blur-sm"
-                            onClick={() => setShowCreateFolder(false)}
-                        />
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                            className="relative w-full max-w-sm bg-white p-6 rounded-lg shadow-xl border border-[#E0D8CC]"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-serif text-[#2C2C2C]">New Folder</h3>
-                                <button onClick={() => setShowCreateFolder(false)} className="text-[#9B9B9B] hover:text-[#2C2C2C]"><X size={20} /></button>
-                            </div>
-                            <input
-                                type="text"
-                                placeholder="Folder Name"
-                                value={newFolderName}
-                                onChange={(e) => setNewFolderName(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-                                className="w-full px-4 py-3 bg-[#F9F7F2] border border-[#E0D8CC] rounded-md text-[#2C2C2C] focus:border-[#8B7355] transition-all placeholder:text-[#BBB] mb-6 outline-none"
-                                autoFocus
-                            />
-                            <div className="flex gap-3">
-                                <button onClick={() => setShowCreateFolder(false)} className="flex-1 px-4 py-2.5 bg-white border border-[#E0D8CC] text-[#6B6B6B] rounded-md hover:bg-[#F9F7F2]">Cancel</button>
+                {/* Toolbar Context */}
+                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-2 mb-8 shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+                    <div className="flex flex-col xl:flex-row gap-4 items-stretch xl:items-center justify-between p-2">
+                        {/* Breadcrumbs */}
+                        <div className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 rounded-xl overflow-x-auto whitespace-nowrap scrollbar-hide">
+                            <button
+                                onClick={() => setCurrentPath('')}
+                                className={`flex items-center gap-2 hover:text-indigo-300 transition-colors ${!currentPath ? 'text-indigo-400 font-medium' : 'text-slate-400'}`}
+                            >
+                                <Home size={16} /> <span className="text-sm">Home</span>
+                            </button>
+                            {currentPath.split('/').filter(Boolean).map((segment, index, arr) => (
+                                <span key={index} className="flex items-center gap-2">
+                                    <ChevronLeft size={14} className="text-slate-600 rotate-180" />
+                                    <button
+                                        onClick={() => setCurrentPath(arr.slice(0, index + 1).join('/'))}
+                                        className={`hover:text-indigo-300 transition-colors text-sm ${index === arr.length - 1 ? 'text-slate-200 font-medium' : 'text-slate-400'}`}
+                                    >
+                                        {segment}
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap pb-2 xl:pb-0">
+                            {currentPath && (
                                 <button
-                                    onClick={handleCreateFolder}
-                                    disabled={creatingFolder || !newFolderName.trim()}
-                                    className="flex-1 px-4 py-2.5 bg-[#2C2C2C] text-white rounded-md hover:opacity-90 disabled:opacity-50 transition-all font-medium"
+                                    onClick={() => setCurrentPath(currentPath.split('/').slice(0, -1).join('/'))}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/50 border border-white/5 text-slate-300 rounded-xl hover:bg-slate-700 hover:text-white transition-all text-sm font-medium"
                                 >
-                                    {creatingFolder ? 'Creating...' : 'Create'}
+                                    <ChevronLeft size={16} /> Back
+                                </button>
+                            )}
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploading}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] transition-all text-sm font-medium disabled:opacity-50"
+                            >
+                                <Upload size={16} /> Upload
+                            </button>
+                            <button
+                                onClick={() => setShowCreateFolder(true)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-white/5 rounded-xl transition-all text-sm font-medium"
+                            >
+                                <FolderPlus size={16} /> New Folder
+                            </button>
+                            <button
+                                onClick={() => fetchFiles(currentPath)}
+                                disabled={loading}
+                                className="p-2.5 bg-slate-800/80 hover:bg-slate-700 border border-white/5 text-slate-300 rounded-xl transition-all"
+                            >
+                                <RefreshCw size={18} className={loading ? 'animate-spin text-indigo-400' : ''} />
+                            </button>
+                            <div className="h-8 w-px bg-white/10 mx-1 hidden xl:block"></div>
+                            <div className="relative group">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-40 xl:w-56 pl-9 pr-4 py-2.5 bg-slate-900/50 border border-white/5 rounded-xl text-sm text-slate-200 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 outline-none placeholder:text-slate-500 transition-all"
+                                />
+                            </div>
+                            <div className="flex gap-2 bg-slate-900/50 p-1 rounded-xl border border-white/5">
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value as 'name' | 'size' | 'modified')}
+                                    className="appearance-none bg-transparent pl-3 pr-8 py-1.5 text-sm text-slate-300 focus:outline-none cursor-pointer"
+                                >
+                                    <option value="name" className="bg-slate-800">Name</option>
+                                    <option value="size" className="bg-slate-800">Size</option>
+                                    <option value="modified" className="bg-slate-800">Date</option>
+                                </select>
+                                <button
+                                    onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                    className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-slate-400 hover:text-white"
+                                >
+                                    {sortOrder === 'asc' ? <SortAsc size={16} /> : <SortDesc size={16} />}
                                 </button>
                             </div>
-                        </motion.div>
+                        </div>
+                        <input type="file" ref={fileInputRef} className="hidden" multiple onChange={(e) => e.target.files && handleUpload(e.target.files)} />
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
 
-            {/* Main Content: File List */}
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                {loading ? (
-                    Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="bg-white/50 border border-white/60 rounded-2xl p-6 h-40 animate-pulse" />
-                    ))
-                ) : (
-                    <AnimatePresence mode="popLayout">
-                        {filteredAndSortedFiles.map((file, index) => (
+                {/* Progress Indicators */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    {/* Upload Progress */}
+                    {Object.keys(uploadProgress).length > 0 && (
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-5 bg-white/5 backdrop-blur-xl border border-indigo-500/30 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+                            <h4 className="flex items-center gap-2 text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4">
+                                <Upload size={14} className="animate-bounce" /> Uploading Transfers
+                            </h4>
+                            <div className="space-y-4 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                                {Object.entries(uploadProgress).map(([name, progress]) => (
+                                    <div key={name}>
+                                        <div className="flex justify-between text-sm text-slate-300 mb-1.5">
+                                            <span className="truncate max-w-[70%] font-medium">{name}</span>
+                                            <span className="text-indigo-300 font-mono text-xs">{progress}%</span>
+                                        </div>
+                                        <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                            <div className="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-indigo-500 to-purple-500 relative" style={{ width: `${progress}%` }}>
+                                                <div className="absolute inset-0 bg-white/20 animate-[shimmer_1s_infinite]" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Download Progress */}
+                    {Object.keys(downloadProgress).length > 0 && (
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-5 bg-white/5 backdrop-blur-xl border border-emerald-500/30 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+                            <h4 className="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-widest mb-4">
+                                <Download size={14} className="animate-bounce" /> Downloading Transfers
+                            </h4>
+                            <div className="space-y-4 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                                {Object.entries(downloadProgress).map(([name, progress]) => (
+                                    <div key={name}>
+                                        <div className="flex justify-between text-sm text-slate-300 mb-1.5">
+                                            <span className="truncate max-w-[70%] font-medium">{name}</span>
+                                            <span className="text-emerald-300 font-mono text-xs">{progress}%</span>
+                                        </div>
+                                        <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                            <div className="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-emerald-500 to-teal-400 relative" style={{ width: `${progress}%` }}>
+                                                <div className="absolute inset-0 bg-white/20 animate-[shimmer_1s_infinite]" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </div>
+
+                {/* Create Folder Modal */}
+                <AnimatePresence>
+                    {showCreateFolder && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                             <motion.div
-                                key={file.name}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ delay: index * 0.03 }}
-                                layout
-                                className="group relative bg-white/70 backdrop-blur-md border border-white/80 rounded-2xl p-6 cursor-pointer hover:bg-white hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-300 ring-1 ring-transparent hover:ring-[#8B7355]/10"
-                                onClick={() => file.isDirectory ? setCurrentPath(currentPath ? `${currentPath}/${file.name}` : file.name) : null}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                                onClick={() => setShowCreateFolder(false)}
+                            />
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                className="relative w-full max-w-sm bg-slate-900 border border-white/10 p-6 rounded-2xl shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
                             >
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="p-4 bg-gradient-to-br from-[#F9F7F2] to-[#F1EDE6] rounded-xl group-hover:from-[#F5F0E8] group-hover:to-[#EAE4D9] transition-colors shadow-inner">
-                                        {getFileIcon(file.name, file.isDirectory)}
+                                <div className="flex justify-between items-center mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-indigo-500/20 rounded-lg">
+                                            <FolderPlus className="text-indigo-400" size={20} />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-white">Create Folder</h3>
                                     </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300">
-                                        {!file.isDirectory && (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleDownload(file.name); }}
-                                                className="p-2 text-[#6B6B6B] hover:text-[#8B7355] hover:bg-[#F5F0E8] rounded-lg transition-all"
-                                                title="Download"
-                                            >
-                                                <Download size={18} />
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(file.name); }}
-                                            className="p-2 text-[#6B6B6B] hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
+                                    <button onClick={() => setShowCreateFolder(false)} className="text-slate-500 hover:text-white transition-colors bg-white/5 p-1.5 rounded-lg"><X size={18} /></button>
                                 </div>
-
-                                <div>
-                                    <h3
-                                        className="font-semibold text-[#2C2C2C] truncate mb-2 text-base group-hover:text-[#8B7355] transition-colors"
-                                        title={file.name}
+                                <input
+                                    type="text"
+                                    placeholder="Enter folder name..."
+                                    value={newFolderName}
+                                    onChange={(e) => setNewFolderName(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+                                    className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-xl text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-500 mb-6 outline-none"
+                                    autoFocus
+                                />
+                                <div className="flex gap-3">
+                                    <button onClick={() => setShowCreateFolder(false)} className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors text-sm font-medium">Cancel</button>
+                                    <button
+                                        onClick={handleCreateFolder}
+                                        disabled={creatingFolder || !newFolderName.trim()}
+                                        className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-[0_0_15px_rgba(79,70,229,0.3)] disabled:opacity-50 disabled:shadow-none transition-all text-sm font-medium flex justify-center items-center gap-2"
                                     >
-                                        {file.name}
-                                    </h3>
-                                    <div className="flex justify-between items-center text-xs font-medium text-[#9B9B9B] uppercase tracking-wide">
-                                        <span className="bg-[#F0EEE9] px-2 py-1 rounded text-[#7A7A7A]">
-                                            {file.isDirectory ? 'Folder' : formatSize(file.size)}
-                                        </span>
-                                        <span>{formatDate(file.modified)}</span>
-                                    </div>
+                                        {creatingFolder ? <RefreshCw size={16} className="animate-spin" /> : 'Create Folder'}
+                                    </button>
                                 </div>
                             </motion.div>
-                        ))}
-                    </AnimatePresence>
-                )}
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Main Content: File List */}
+                <div className="relative z-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 lg:gap-6">
+                    {loading ? (
+                        Array.from({ length: 12 }).map((_, i) => (
+                            <div key={i} className="bg-white/5 border border-white/5 rounded-2xl p-5 h-44 animate-pulse relative overflow-hidden">
+                                <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
+                            </div>
+                        ))
+                    ) : (
+                        <AnimatePresence mode="popLayout">
+                            {filteredAndSortedFiles.map((file, index) => (
+                                <motion.div
+                                    key={file.name}
+                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                                    transition={{ delay: index * 0.02, type: "spring", stiffness: 300, damping: 25 }}
+                                    layout
+                                    className="group relative bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 cursor-pointer hover:bg-white/10 hover:border-indigo-500/30 hover:shadow-[0_8px_30px_rgba(79,70,229,0.15)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col"
+                                    onClick={() => file.isDirectory ? setCurrentPath(currentPath ? `${currentPath}/${file.name}` : file.name) : null}
+                                >
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="p-3 bg-white/5 rounded-xl group-hover:scale-110 group-hover:bg-indigo-500/10 transition-all duration-300">
+                                            {getFileIcon(file.name, file.isDirectory)}
+                                        </div>
+                                        <div className="flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-y-2 group-hover:translate-y-0">
+                                            {!file.isDirectory && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDownload(file.name); }}
+                                                    className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors bg-slate-900/50 backdrop-blur-md border border-white/5"
+                                                    title="Download"
+                                                >
+                                                    <Download size={14} />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(file.name); }}
+                                                className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors bg-slate-900/50 backdrop-blur-md border border-white/5"
+                                                title="Delete"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-auto">
+                                        <h3
+                                            className="font-semibold text-slate-200 truncate mb-1.5 text-sm group-hover:text-indigo-300 transition-colors"
+                                            title={file.name}
+                                        >
+                                            {file.name}
+                                        </h3>
+                                        <div className="flex flex-col gap-1 text-[11px] font-medium text-slate-500">
+                                            <div className="flex justify-between items-center">
+                                                <span className="bg-white/5 px-2 py-0.5 rounded text-slate-400 border border-white/5">
+                                                    {file.isDirectory ? 'Folder' : formatSize(file.size)}
+                                                </span>
+                                            </div>
+                                            <span className="truncate">{formatDate(file.modified)}</span>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    )}
+                </div>
 
                 {!loading && filteredAndSortedFiles.length === 0 && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="col-span-full flex flex-col items-center justify-center p-20 border-2 border-dashed border-[#E0D8CC] rounded-xl bg-white/50">
-                        <div className="p-4 bg-[#F5F0E8] rounded-full mb-4">
-                            <Upload size={32} className="text-[#8B7355]" />
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-32 border-2 border-dashed border-white/10 rounded-3xl bg-white/5 backdrop-blur-sm mt-8">
+                        <div className="p-6 bg-indigo-500/10 rounded-full mb-6 ring-8 ring-indigo-500/5">
+                            <Archive size={48} className="text-indigo-400" />
                         </div>
-                        <p className="text-lg font-serif text-[#2C2C2C] mb-1">{searchQuery ? 'No results found' : 'This folder is empty'}</p>
-                        <p className="text-sm text-[#6B6B6B]">{searchQuery ? 'Try different keywords' : 'Drag files here or start a new upload'}</p>
+                        <p className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-200 to-slate-400 mb-2">
+                            {searchQuery ? 'No matching files found' : 'Your space is empty'}
+                        </p>
+                        <p className="text-slate-500">
+                            {searchQuery ? 'Try adjusting your search criteria' : 'Drag and drop your files here to securely upload them'}
+                        </p>
                     </motion.div>
                 )}
             </div>
@@ -504,15 +567,40 @@ export default function Dashboard() {
             {/* Drag Overlay */}
             <AnimatePresence>
                 {dragActive && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-[#8B7355]/90 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
-                        <div className="p-10 border-4 border-white border-dashed rounded-xl text-center">
-                            <Upload size={64} className="text-white mx-auto mb-6" />
-                            <h2 className="text-3xl font-serif text-white mb-2">Drop files here</h2>
-                            <p className="text-white/80 uppercase tracking-widest text-sm">to upload instantly</p>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center pointer-events-none">
+                        <div className="absolute inset-4 border-2 border-indigo-500/50 border-dashed rounded-3xl bg-indigo-500/5 flex flex-col items-center justify-center animate-pulse">
+                            <div className="p-8 bg-indigo-500/20 rounded-full mb-8">
+                                <Upload size={80} className="text-indigo-400" />
+                            </div>
+                            <h2 className="text-4xl font-bold text-white mb-4">Drop your files here</h2>
+                            <p className="text-indigo-300/80 text-lg uppercase tracking-widest font-semibold flex items-center gap-2">
+                                <CheckCircle2 size={20} /> Release to upload instantly
+                            </p>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <style dangerouslySetInnerHTML={{__html: `
+                @keyframes shimmer {
+                    100% { transform: translateX(100%); }
+                }
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(99, 102, 241, 0.5);
+                }
+            `}} />
         </div>
     );
 }
+
