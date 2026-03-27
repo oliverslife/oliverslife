@@ -35,6 +35,16 @@ export default function Dashboard() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
+    const handleLogout = async () => {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            router.push('/');
+        } catch (error) {
+            console.error('Logout failed:', error);
+            router.push('/');
+        }
+    };
+
     useEffect(() => {
         const storedFavs = localStorage.getItem('oliverslife_favorites');
         if (storedFavs) {
@@ -329,7 +339,7 @@ export default function Dashboard() {
                     </div>
                     <div className="topbar-actions">
                         <button className="icon-btn" onClick={() => fetchFiles(currentPath)}><RefreshCw size={18} className={loading ? 'fa-spin' : ''} /></button>
-                        <button className="icon-btn" title="Logout" onClick={() => router.push('/')}><LogOut size={18} /></button>
+                        <button className="icon-btn" title="Logout" onClick={handleLogout}><LogOut size={18} /></button>
                         <button className="avatar" title="Sojin Kim">SK</button>
                     </div>
                 </div>
