@@ -212,7 +212,7 @@ export default function Dashboard() {
     };
 
     const getFileIcon = (filename: string, isDirectory: boolean) => {
-        if (isDirectory) return <Folder color="#0061D5" size={48} strokeWidth={1} fill="rgba(0,97,213,0.1)" />;
+        if (isDirectory) return <Folder color="#8B7355" size={48} strokeWidth={1} fill="rgba(139,115,85,0.1)" />;
 
         const ext = filename.split('.').pop()?.toLowerCase() || '';
         const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
@@ -447,7 +447,7 @@ export default function Dashboard() {
                 {dragActive && (
                     <motion.div initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}} className="drag-overlay">
                         <div className="drag-content">
-                            <Upload size={64} color="#0061D5" />
+                            <Upload size={64} color="#8B7355" />
                             <h2>Drop files to upload</h2>
                             <p style={{color: '#64748b'}}>Release your mouse to start uploading</p>
                         </div>
@@ -498,7 +498,7 @@ export default function Dashboard() {
                             <div key={`ul-${name}`} className="progress-item">
                                 <div className="progress-info">
                                     <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%'}}>Upload: {name}</span>
-                                    <span style={{color: '#0061D5', fontWeight: 600}}>{progress}%</span>
+                                    <span style={{color: '#8B7355', fontWeight: 600}}>{progress}%</span>
                                 </div>
                                 <div className="progress-bar-bg">
                                     <div className="progress-bar-fill" style={{width: `${progress}%`}}></div>
