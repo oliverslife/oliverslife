@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
     try {
@@ -12,10 +13,15 @@ export async function POST(request: NextRequest) {
         if (apiKey === SERVER_API_KEY) {
             const cookieStore = await cookies();
 
-            // Helpful for debugging: log success (but not the key)
+            // Generate a secure hash of the API key as the session token
+            const secureToken = crypto
+                .createHash('sha256')
+                .update(SERVER_API_KEY + 'oliverslife-salt')
+                .digest('hex');
+
             console.log('Authentication successful');
 
-            cookieStore.set('auth_token', 'valid_session', {
+            cookieStore.set('auth_token', secureToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production' && !request.url.startsWith('http://'),
                 sameSite: 'strict',
